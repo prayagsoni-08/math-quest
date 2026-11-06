@@ -4,7 +4,8 @@ const beep=(f,d=.15)=>{if(!sound)return;try{ac=ac||new AudioContext();const o=ac
 const ok=()=>{beep(660);setTimeout(()=>beep(880),120)},bad=()=>beep(180,.3);
 const rnd=n=>Math.floor(Math.random()*n);
 const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
-const show=h=>{$('#title').hidden=true;view.hidden=false;view.innerHTML=h};
+const show=(h,g)=>{$('#title').hidden=true;view.hidden=false;view.className=g?'gate':'';view.innerHTML=h};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const goTitle=()=>{clearInterval(E&&E.iv);view.hidden=true;$('#title').hidden=false};
 const modalOpen=h=>{modal.hidden=false;modal.innerHTML=`<div class="box">${h}<button class="btn" onclick="modal.hidden=true">Close</button></div>`};
 
@@ -28,10 +29,19 @@ const C=[["Easy","Addition","What is 15 + 27?",42,"Add tens (10 + 20), then ones
 ["Hard","Powers","What is 2⁵ + 3³?",59,"32 + 27 = 59."]];
 
 let E,B;
-$('#b-start').onclick=()=>show(`<h1>Math-Quest</h1><p class="q">The village holds a secret. A strange buzzing comes from a locked treasure box.<br><br>Solve four rooms in 10 minutes to collect four keys and silence it. Then race a rival through Math-O-Quest.</p><button class="btn" onclick="startEscape()">Enter the village</button><button class="btn ghost" onclick="goTitle()">Back</button>`);
-$('#b-how').onclick=()=>modalOpen(`<h2>How to play</h2><p><b>Part 1:</b> four rooms, one question each. Two tries, then a clue and a final attempt (30 s penalty). One hint token for the whole escape (−30 s).</p><p><b>Part 2:</b> two players take turns. Spin for a card, answer it, then spin 1–4 spaces forward. A wrong answer sends you back 2 unless your shield absorbs it. Reach or pass FINISH to win.</p>`);
-$('#b-set').onclick=()=>{modalOpen(`<h2>Settings</h2><button class="btn ghost" id="snd" onclick="sound=!sound;this.textContent='Sound: '+(sound?'On':'Off')">Sound: ${sound?'On':'Off'}</button>`)};
-$('#b-cred').onclick=()=>modalOpen(`<h2>Credits</h2><p>Math-Quest: a combined maths escape and board game. Concept from the Combined Maths Challenge guide.</p>`);
+let P={name:'Player 1',cls:''};
+$('#b-start').onclick=askName;
+$('#b-lb').onclick=leaderboard;
+$('#b-snd').onclick=function(){sound=!sound;this.textContent=sound?'🔊':'🔇'};
+function askName(){show(`<h2>What is your name, traveller?</h2><input id="nm" type="text" maxlength="16" placeholder="Your name" autocomplete="off" onkeydown="if(event.key==='Enter')saveName()"><div class="row"><button class="btn" onclick="saveName()">Next</button><button class="btn ghost" onclick="goTitle()">Back</button></div>`,1);$('#nm').focus()}
+function saveName(){const v=$('#nm').value.trim();if(!v){$('#nm').focus();return}P.name=esc(v);askClass()}
+function askClass(){show(`<h2>${P.name}, which class are you in?</h2><div class="grid">${['≤6',7,8,9,10,11,12].map(c=>`<button class="btn" onclick="pickClass('${c}')">${c}</button>`).join('')}</div><button class="btn ghost" onclick="askName()">Back</button>`,1)}
+function pickClass(c){P.cls=c;intro()}
+function intro(){show(`<h1>Math-Quest</h1><p class="q">The village holds a secret. A strange buzzing comes from a locked treasure box.<br><br>Solve four rooms in 10 minutes to collect four keys and silence it. Then race a rival through Math-O-Quest.</p><button class="btn" onclick="startEscape()">Enter the village</button><button class="btn ghost" onclick="modalOpen(HOW)">How to play</button>`)}
+const HOW=`<h2>How to play</h2><p><b>Part 1:</b> four rooms, one question each. Two tries, then a clue and a final attempt (30 s penalty). One hint token for the whole escape (−30 s).</p><p><b>Part 2:</b> two players take turns. Spin for a card, answer it, then spin 1–4 spaces forward. A wrong answer sends you back 2 unless your shield absorbs it. Reach or pass FINISH to win.</p>`;
+const lbGet=()=>{try{return JSON.parse(localStorage.getItem('mq_lb')||'[]')}catch(e){return[]}};
+function saveScore(k,tl){try{const l=lbGet();l.push({n:P.name,c:P.cls,s:k*100+Math.max(tl,0)});l.sort((a,b)=>b.s-a.s);localStorage.setItem('mq_lb',JSON.stringify(l.slice(0,10)))}catch(e){}}
+function leaderboard(){const l=lbGet();show(`<h2>🏆 Leaderboard</h2>${l.length?l.map((e,i)=>`<p class="lb"><span>${i+1}. ${e.n} · Class ${e.c}</span><b>${e.s}</b></p>`).join(''):'<p>No scores yet. Be the first!</p>'}<p><small>Score = 100 per key + seconds left</small></p><button class="btn ghost" onclick="goTitle()">Back</button>`)}
 
 function startEscape(){E={r:0,keys:0,tries:0,hint:1,tl:600,qs:R.map(r=>r[1][rnd(2)])};clearInterval(E.iv);E.iv=setInterval(()=>{E.tl--;tick();if(E.tl<=0)lose()},1000);room()}
 const tick=()=>{const t=$('#tm');if(t)t.textContent='⏳ '+Math.floor(Math.max(E.tl,0)/60)+':'+String(Math.max(E.tl,0)%60).padStart(2,'0')};
@@ -42,12 +52,12 @@ function submitE(){const i=$('#ans');if(i.value==='')return;const c=E.qs[E.r],v=
  if(v===c[1]){ok();if(E.tries===2)E.tl-=30;fb('🗝️ Key earned! '+c[2]);nextRoom()}
  else{bad();E.tries++;if(E.tries===1)fb('Not quite. Try once more.',1);else if(E.tries===2)fb('Clue: '+c[2]+' Final recovery attempt (correct costs 30 s).',1);else{E.tl-=60;fb('The answer was '+c[1]+'. '+c[2]+' (−60 s)',1);nextRoom()}}}
 function nextRoom(){$('#ans').disabled=true;setTimeout(()=>{E.keys++;E.r++;E.r===4?transition():room()},2200)}
-function lose(){clearInterval(E.iv);show(`<h1>Time's up</h1><p class="q">The buzzing grows louder… You collected ${E.keys} of 4 keys.</p><button class="btn" onclick="startEscape()">Try again (new puzzles)</button><button class="btn ghost" onclick="goTitle()">Title</button>`)}
-function transition(){clearInterval(E.iv);show(`<h1>The box opens!</h1><p class="q">The buzzing stops, and inside lies an old map of the village track.<br><br>Time left: ${Math.max(E.tl,0)} s. Now a rival challenges you to Math-O-Quest.</p><button class="btn" onclick="startBoard()">Begin Math-O-Quest</button>`)}
+function lose(){clearInterval(E.iv);saveScore(E.keys,0);show(`<h1>Time's up</h1><p class="q">The buzzing grows louder… You collected ${E.keys} of 4 keys.</p><button class="btn" onclick="startEscape()">Try again (new puzzles)</button><button class="btn ghost" onclick="goTitle()">Title</button>`)}
+function transition(){clearInterval(E.iv);saveScore(E.keys,E.tl);show(`<h1>The box opens!</h1><p class="q">The buzzing stops, and inside lies an old map of the village track.<br><br>Time left: ${Math.max(E.tl,0)} s. Now a rival challenges you to Math-O-Quest.</p><button class="btn" onclick="startBoard()">Begin Math-O-Quest</button>`)}
 
 function startBoard(){B={p:[0,0],sh:[1,1],t:0,deck:shuffle([...Array(14).keys()]),card:null};board()}
 function board(msg=''){const cells=[...Array(15).keys()].map(i=>`<div class="cell${i===14?' fin':''}">${i===0?'START':i===14?'FINISH':i}<br>${B.p.map((p,k)=>p===i?`<span class="tok">${k?'🔵':'🟠'}</span>`:'').join('')}</div>`).join('');
- show(`<h2>${B.t?'🔵 Player 2':'🟠 Player 1'}'s turn</h2><div class="track">${cells}</div><p>🛡️ Shields: P1 ${B.sh[0]} · P2 ${B.sh[1]}</p><p class="fb">${msg}</p><div id="act"><button class="btn" onclick="spin1()">🎡 Spin for a card</button></div>`)}
+ show(`<h2>${B.t?'🔵 Player 2':'🟠 '+P.name}'s turn</h2><div class="track">${cells}</div><p>🛡️ Shields: P1 ${B.sh[0]} · P2 ${B.sh[1]}</p><p class="fb">${msg}</p><div id="act"><button class="btn" onclick="spin1()">🎡 Spin for a card</button></div>`)}
 function spin1(){const a=$('#act');a.innerHTML='<div id="sp">?</div>';let n=0;const iv=setInterval(()=>{$('#sp').textContent=1+rnd(14);if(++n>12){clearInterval(iv);const i=B.deck.pop();if(!B.deck.length)B.deck=shuffle([...Array(14).keys()]);B.card=i;ask()}},80)}
 function ask(){const c=C[B.card];$('#act').innerHTML=`<div class="card"><small>Card ${B.card+1} · ${c[0]} · ${c[1]}</small><p class="q">${c[2]}</p><input id="ans" type="number" inputmode="numeric" onkeydown="if(event.key==='Enter')answerB()"><button class="btn" onclick="answerB()">Answer</button></div>`;$('#ans').focus()}
 function answerB(){const i=$('#ans');if(i.value==='')return;const c=C[B.card];
@@ -55,4 +65,4 @@ function answerB(){const i=$('#ans');if(i.value==='')return;const c=C[B.card];
  else{bad();let m;if(B.sh[B.t]){B.sh[B.t]=0;m='🛡️ Your shield absorbed the setback.'}else{B.p[B.t]=Math.max(0,B.p[B.t]-2);m='Back 2 spaces.'}
   $('#act').innerHTML=`<p class="fb bad">✘ The answer was ${c[3]}. ${c[4]} ${m}</p><button class="btn" onclick="B.t=1-B.t;board()">Next player</button>`}}
 function spin2(){$('#act').innerHTML='<div id="sp">?</div>';let n=0;const iv=setInterval(()=>{$('#sp').textContent=1+rnd(4);if(++n>10){clearInterval(iv);const m=+$('#sp').textContent;B.p[B.t]=Math.min(14,B.p[B.t]+m);if(B.p[B.t]>=14)return finish();B.t=1-B.t;board(`Moved forward ${m}!`)}},80)}
-function finish(){ok();show(`<h1>${B.t?'🔵 Player 2':'🟠 Player 1'} wins!</h1><p class="q">You silenced the buzzing and crossed the village.<br><br>Concepts you practised: multiplication, division, percentages, fractions, algebra, area and powers.</p><button class="btn" onclick="startEscape()">Play again (new set)</button><button class="btn ghost" onclick="goTitle()">Title</button>`)}
+function finish(){ok();show(`<h1>${B.t?'🔵 Player 2':'🟠 '+P.name} wins!</h1><p class="q">You silenced the buzzing and crossed the village.<br><br>Concepts you practised: multiplication, division, percentages, fractions, algebra, area and powers.</p><button class="btn" onclick="startEscape()">Play again (new set)</button><button class="btn ghost" onclick="goTitle()">Title</button>`)}
