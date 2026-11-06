@@ -8,6 +8,8 @@ h1,h2{margin:0;color:var(--gold);letter-spacing:.04em}
 h1{font-size:calc(var(--u)*8)}h2{font-size:calc(var(--u)*5)}
 p{margin:0;line-height:1.5}
 .q{font-size:calc(var(--u)*4.4)}
+.speaker{font-size:calc(var(--u)*3.8);color:var(--gold);letter-spacing:.12em;text-transform:uppercase}
+.dialogue{line-height:1.65;text-shadow:0 2px 10px #000;max-width:92%;align-self:center}
 .btn{font:inherit;font-weight:700;color:#2a1604;background:linear-gradient(#ffd98a,#e0a23c);border:2px solid #fff1c4;border-radius:12px;padding:.6em 1.2em;cursor:pointer;box-shadow:0 0 16px #f5c76a66}
 .ghost{background:#141827;color:var(--gold);border-color:#8a6a2c;box-shadow:none}
 .btn:disabled{opacity:.4;cursor:default}
