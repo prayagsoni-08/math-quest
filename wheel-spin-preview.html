@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MATH-QUEST Wheel Spin</title>
+<style>
+:root{color-scheme:dark;--gold:#f2c46b;--ink:#080d18;--cream:#f3e7ce}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 25%,#26354b 0,#101725 45%,#070b12 100%);color:var(--cream);font:16px/1.4 Georgia,serif;padding:24px}
+main{width:min(100%,460px);text-align:center;display:grid;justify-items:center;gap:20px}
+h1{color:var(--gold);font-size:clamp(24px,7vw,34px);margin:0;letter-spacing:.06em}
+p{margin:0;color:#d7d0c3}
+.wheel-wrap{width:min(74vw,320px);aspect-ratio:1;position:relative;margin:6px 0}
+.pointer{position:absolute;z-index:2;top:-12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:19px solid transparent;border-right:19px solid transparent;border-top:36px solid #fff0c5;filter:drop-shadow(0 2px 5px #000);}
+.wheel{position:absolute;inset:0;border-radius:50%;border:10px solid #b98232;box-shadow:0 0 0 4px #f5d181,0 12px 32px #000b,inset 0 0 18px #0008;background:conic-gradient(from -45deg,#bd5639 0 25%,#386c84 25% 50%,#d1a446 50% 75%,#556d4a 75% 100%);transition:transform 2.8s cubic-bezier(.08,.78,.12,1);overflow:hidden}
+.wheel:before{content:"";position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(from -45deg,transparent 0 89deg,#f8e7b8 89deg 90deg);opacity:.9}
+.label{position:absolute;width:50px;height:50px;border-radius:50%;display:grid;place-items:center;color:#fff7df;font:bold 30px Georgia,serif;text-shadow:0 2px 5px #000b}
+.n1{top:8%;left:50%;transform:translateX(-50%)}
+.n2{right:8%;top:50%;transform:translateY(-50%)}
+.n3{bottom:8%;left:50%;transform:translateX(-50%)}
+.n4{left:8%;top:50%;transform:translateY(-50%)}
+.hub{position:absolute;z-index:1;left:50%;top:50%;width:54px;height:54px;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 35% 30%,#fff0bd,#c68b36 65%,#573512);border:4px solid #ffe8a9;box-shadow:0 2px 8px #000b}
+button{font:700 18px Georgia,serif;color:#271909;background:linear-gradient(#ffe29b,#d99a37);border:2px solid #fff0bd;border-radius:12px;padding:13px 30px;cursor:pointer;box-shadow:0 5px 14px #0007}
+button:disabled{opacity:.6;cursor:wait}
+#result{min-height:1.5em;font-size:20px;color:var(--gold)}
+@media(prefers-reduced-motion:reduce){.wheel{transition-duration:.15s}}
+</style>
+</head>
+<body>
+<main>
+  <h1>MATH-QUEST · MAZE SPIN</h1>
+  <p>Spin after every answer. The result moves you 1–4 spaces.</p>
+  <div class="wheel-wrap" role="img" aria-label="Four-section wheel showing 1, 2, 3, and 4 spaces">
+    <div class="pointer" aria-hidden="true"></div>
+    <div class="wheel" id="wheel">
+      <span class="label n1">1</span><span class="label n2">2</span>
+      <span class="label n3">3</span><span class="label n4">4</span>
+      <span class="hub" aria-hidden="true"></span>
+    </div>
+  </div>
+  <button id="spin" type="button">SPIN THE WHEEL</button>
+  <div id="result" aria-live="polite">Ready when you are.</div>
+</main>
+<script>
+const wheel=document.getElementById('wheel');
+const button=document.getElementById('spin');
+const result=document.getElementById('result');
+let angle=0;
+button.addEventListener('click',()=>{
+  if(button.disabled)return;
+  button.disabled=true;
+  result.textContent='Spinning…';
+  const spaces=1+Math.floor(Math.random()*4);
+  const target=(360-(spaces-1)*90)%360;
+  const extra=(target-(angle%360)+360)%360;
+  angle+=5*360+extra+Math.floor(Math.random()*3)*360;
+  wheel.style.transform=`rotate(${angle}deg)`;
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(()=>{
+    result.textContent=`${spaces} ${spaces===1?'space':'spaces'}`;
+    button.disabled=false;
+  },reduced?180:2900);
+});
+</script>
+</body>
+</html>
+
+
