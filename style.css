@@ -9,8 +9,8 @@
   --pine:#101720;--moss:#91a18c;--blood:#ff5159;
   --font-display:'Cinzel',Georgia,'Times New Roman',serif;
   --font-body:'IM Fell English',Georgia,'Palatino Linotype',serif;
-  --shade:linear-gradient(rgba(2,4,9,.20),rgba(2,4,9,.58));
-  --panel:linear-gradient(to top,rgba(3,4,8,.97),rgba(4,6,11,.91) 68%,rgba(4,6,11,.20));
+  --shade:linear-gradient(rgba(2,4,9,.08),rgba(2,4,9,.30));
+  --panel:linear-gradient(145deg,rgba(3,4,8,.82),rgba(4,6,11,.76));
   --panel-blur:5px;
   --ink-shadow:0 2px 5px rgba(0,0,0,.95),0 0 15px rgba(0,0,0,.9);
 }
@@ -69,6 +69,9 @@ body{
   box-shadow:0 3px 12px rgba(0,0,0,.65),0 0 12px rgba(117,24,31,.22);
   transition:border-color .2s,background .2s,box-shadow .2s;
 }
+#stage>.round{position:absolute;top:max(14px,env(safe-area-inset-top));z-index:40}
+#stage>#b-snd{right:max(14px,env(safe-area-inset-right));left:auto}
+#stage>#b-back{left:max(14px,env(safe-area-inset-left));right:auto}
 .round:hover{border-color:var(--cape-hi);background:rgba(52,12,17,.95);box-shadow:0 0 16px rgba(173,48,56,.4)}
 #b-back{left:14px;right:auto;font-size:1.65rem}
 
@@ -91,6 +94,7 @@ b{color:var(--parch-hi)}
   animation:rise 1.6s ease-out both;
 }
 @keyframes rise{from{opacity:0;filter:blur(8px);transform:translateY(14px)}to{opacity:1;filter:blur(0);transform:none}}
+@keyframes panel-rise{from{opacity:0;transform:translate(-50%,calc(-50% + 12px))}to{opacity:1;transform:translate(-50%,-50%)}}
 .logo h1{
   font-size:clamp(2.3rem,11.5vw,3.5rem);letter-spacing:.08em;margin-bottom:.15em;
   color:var(--parch-hi);
@@ -130,13 +134,13 @@ b{color:var(--parch-hi)}
 
 /* ---------- Question board: fully transparent ---------- */
 #view{
-  margin-top:auto;width:100%;
-  max-height:80%;overflow-y:auto;
-  padding:82px 18px calc(24px + env(safe-area-inset-bottom));text-align:center;
-  background:linear-gradient(180deg,rgba(5,7,12,.91),rgba(3,4,8,.985));
-  border-top:1px solid rgba(160,46,54,.52);
+  position:absolute!important;left:50%;top:50%;transform:translate(-50%,-50%);
+  margin:0;width:min(92%,520px);max-height:calc(100% - 112px);overflow-y:auto;
+  padding:24px 22px calc(20px + env(safe-area-inset-bottom));text-align:center;
+  background:linear-gradient(145deg,rgba(5,7,12,.80),rgba(3,4,8,.76));
+  border:1px solid rgba(160,46,54,.54);border-radius:10px;
   -webkit-backdrop-filter:blur(var(--panel-blur));backdrop-filter:blur(var(--panel-blur));
-  animation:rise .6s ease-out both;
+  animation:panel-rise .6s ease-out both;
   scrollbar-width:thin;scrollbar-color:var(--cape) transparent;
 }
 #view>.btn{margin-top:8px}
@@ -248,7 +252,7 @@ input:disabled{opacity:.5}
 /* ---------- Small phones ---------- */
 @media (max-width:400px){
   body{font-size:16px}
-  #view{padding:70px 14px 20px}
+  #view{padding:20px 14px calc(16px + env(safe-area-inset-bottom));max-height:calc(100% - 104px)}
   .track{gap:5px}
   .cell{min-height:52px;font-size:.7rem}
   .tok{font-size:1.15rem}
@@ -259,7 +263,7 @@ input:disabled{opacity:.5}
 @media (max-width:520px){
   #stage{max-height:none}
   .round{top: max(10px,env(safe-area-inset-top));width:46px;height:46px}
-  #view{max-height:84%;padding-left:14px;padding-right:14px}
+  #view{max-height:calc(100% - 104px);padding-left:14px;padding-right:14px}
   .row{gap:10px}
   .row .btn{flex:1 1 135px;min-height:48px}
   .wheel-wrap{width:min(148px,42vw);height:min(148px,42vw)}
