@@ -1,12 +1,14 @@
-const $=s=>document.querySelector(s),view=$('#view'),modal=$('#modal');
+const $=s=>document.querySelector(s),view=$('#view'),modal=$('#modal'),stage=$('#stage');
 let sound=true,ac;
 const beep=(f,d=.15)=>{if(!sound)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}};
 const ok=()=>{beep(660);setTimeout(()=>beep(880),120)},bad=()=>beep(180,.3);
 const rnd=n=>Math.floor(Math.random()*n);
 const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
-const show=(h,g)=>{$('#title').hidden=true;view.hidden=false;view.className=g?'gate':'';view.innerHTML=h};
+/* Each screen sets a background key; style.css maps keys to images (with fallbacks). */
+const setBg=k=>{stage.dataset.bg=k||'menu'};
+const show=(h,g,bg)=>{$('#title').hidden=true;view.hidden=false;view.className=g?'gate':'';view.innerHTML=h;setBg(bg)};
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const goTitle=()=>{clearInterval(E&&E.iv);view.hidden=true;$('#title').hidden=false};
+const goTitle=()=>{clearInterval(E&&E.iv);view.hidden=true;$('#title').hidden=false;setBg('menu')};
 const modalOpen=h=>{modal.hidden=false;modal.innerHTML=`<div class="box">${h}<button class="btn" onclick="modal.hidden=true">Close</button></div>`};
 
 const R=[["The Old Gate",[["The rusted lock reads: 7 × 8 = ?",56,"7 × 8 = 7 × 10 − 7 × 2."],["The rusted lock reads: 6 × 9 = ?",54,"6 × 9 = 6 × 10 − 6."]]],
@@ -33,44 +35,57 @@ let P={name:'Player 1',cls:''};
 $('#b-start').onclick=()=>{part1Cleared=false;askName()};
 $('#b-lb').onclick=leaderboard;
 $('#b-snd').onclick=function(){sound=!sound;this.textContent=sound?'🔊':'🔇'};
+
+/* ---------- Story (Part 1 and Part 2) ---------- */
 function playStory(part){
  const lines=part==='part1' ? [
   ['Narrator','Long ago, this was a peaceful village.'],['Narrator','Then a shrill buzzing sound began echoing through its streets.'],['Villager','Please, make it stop! We cannot sleep or think with that sound.'],['Villager','It is coming from the abandoned house at the end of the road.'],['Student','I will go inside and find what is frightening everyone.'],['Narrator','You step into the abandoned house. Four locked rooms wait in the darkness.'],['Mysterious Voice','Answer each room’s question to earn its special key.'],['Mysterious Voice','Use each key to open the box holding the next room’s key.'],['Mysterious Voice','The final box contains the controller making that terrible sound.'],['Student','I will find it and help the villagers.']
  ] : [
   ['Narrator','The buzzing stops. Inside the final box, you discover its mysterious controller.'],['Student','The villagers are safe at last!'],['Narrator','Suddenly, the floor cracks and collapses beneath your feet.'],['Student','Whoa! Where am I?'],['Narrator','You have fallen into a maze. The exit is the only way out.'],['Mysterious Voice','Answer a maths question, then spin the wheel numbered 1 to 4.'],['Mysterious Voice','A correct answer moves you forward exactly the number of spaces you spin.'],['Mysterious Voice','A wrong answer still earns a spin, but sends you backward exactly that many spaces.'],['Student','I have to reach the exit to escape. Here goes!']
  ]; let n=0;
- const draw=()=>{const [who,line]=lines[n];const last=n===lines.length-1;show(`<p class="speaker">${who}</p><p class="q dialogue">“${line}”</p><div class="row"><button class="btn" onclick="storyNext('${part}')">${last?(part==='part1'?'Enter Room 1':'Enter Maze'):'Continue'}</button>${last?'':`<button class="btn ghost" onclick="storySkip('${part}')">Skip</button>`}</div>`,1)};
- window.storyNext=p=>{if(++n<lines.length)draw();else p==='part1'?partBoard():startBoard()};
+ /* Part 1: village road first, then the abandoned house. Part 2: controller, then the maze. */
+ const bgFor=i=>part==='part1'?(i<5?'village':'house'):(i<2?'cleared':'mazestory');
+ const draw=()=>{const [who,line]=lines[n];const last=n===lines.length-1;show(`<p class="speaker">${who}</p><p class="q dialogue">“${line}”</p><div class="row"><button class="btn" onclick="storyNext('${part}')">${last?(part==='part1'?'Enter Room 1':'Enter Maze'):'Continue'}</button>${last?'':`<button class="btn ghost" onclick="storySkip('${part}')">Skip</button>`}</div>`,1,bgFor(n))};
+ window.storyNext=p=>{if(++n<lines.length)draw();else p==='part1'?startEscape():startBoard()};
  window.storySkip=p=>{n=lines.length-1;draw()}; draw();
 }
-function askName(){show(`<h2>What is your name, traveller?</h2><input id="nm" type="text" maxlength="16" placeholder="Your name" autocomplete="off" onkeydown="if(event.key==='Enter')saveName()"><div class="row"><button class="btn" onclick="saveName()">Next</button><button class="btn ghost" onclick="goTitle()">Back</button></div>`,1);$('#nm').focus()}
+
+/* ---------- Name, class, part board ---------- */
+function askName(){show(`<h2>What is your name, traveller?</h2><input id="nm" type="text" maxlength="16" placeholder="Your name" autocomplete="off" onkeydown="if(event.key==='Enter')saveName()"><div class="row"><button class="btn" onclick="saveName()">Continue</button><button class="btn ghost" onclick="goTitle()">Back</button></div>`,1,'name');$('#nm').focus()}
 function saveName(){const v=$('#nm').value.trim();if(!v){$('#nm').focus();return}P.name=esc(v);askClass()}
-function askClass(){show(`<h2>${P.name}, which class are you in?</h2><div class="grid">${[1,2,3,4,5,6,7,8,9,10,11,12].map(c=>`<button class="btn" onclick="pickClass('${c}')">${c}</button>`).join('')}</div><button class="btn ghost" onclick="askName()">Back</button>`,1)}
-function pickClass(c){P.cls=c;playStory('part1')}
-function intro(){playStory('part1')}
-function partBoard(){show(`<h1>Choose a Part</h1><p class="q">Complete each part to unlock the next challenge.</p><div class="part-card"><h2>${part1Cleared?'✅ Part 1: The Abandoned House':'Part 1: The Abandoned House'}</h2><p>Earn four keys, open the final box, and stop the buzzing.</p><button class="btn" onclick="startEscape()">${part1Cleared?'Replay Part 1':'Enter Room 1'}</button></div><div class="part-card ${part1Cleared?'':'locked'}"><h2>${part1Cleared?'Part 2: The Maze':'🔒 Part 2: The Maze'}</h2><p>${part1Cleared?'Unlocked! Solve questions and spin toward the exit.':'Clear Part 1 to unlock this challenge.'}</p><button class="btn" ${part1Cleared?'onclick="playStory(\'part2\')"':'disabled'}>${part1Cleared?'Start Part 2':'Locked'}</button></div><button class="btn ghost" onclick="goTitle()">Main Menu</button>`,1)}
+function askClass(){show(`<h2>${P.name}, which class are you in?</h2><div class="grid">${[1,2,3,4,5,6,7,8,9,10,11,12].map(c=>`<button class="btn" onclick="pickClass('${c}')">${c}</button>`).join('')}</div><button class="btn ghost" onclick="askName()">Back</button>`,1,'class')}
+function pickClass(c){P.cls=c;partBoard()}
+function intro(){partBoard()}
+function partBoard(){show(`<h1>Choose a Part</h1><p class="q">Complete each part to unlock the next challenge.</p>
+<div class="part-card"><div class="doors" aria-hidden="true"><i>🚪</i><i>🚪</i><i>🚪</i><i>🚪</i></div><h2>${part1Cleared?'✅ Part 1: The Abandoned House':'Part 1: The Abandoned House'}</h2><p>Earn four keys, open the final box, and stop the buzzing.</p><button class="btn" onclick="playStory('part1')">${part1Cleared?'Replay Part 1':'Start Part 1'}</button></div>
+<div class="part-card ${part1Cleared?'':'locked'}"><div class="doors" aria-hidden="true"><i>🌀</i>${part1Cleared?'':'<i class="lock">🔒</i>'}</div><h2>${part1Cleared?'Part 2: The Maze':'Part 2: The Maze'}</h2><p>${part1Cleared?'Unlocked! Solve questions and spin toward the exit.':'Clear Part 1 to unlock this challenge.'}</p><button class="btn" ${part1Cleared?'onclick="playStory(\'part2\')"':'disabled'}>${part1Cleared?'Start Part 2':'Locked'}</button></div>
+<button class="btn ghost" onclick="goTitle()">Main Menu</button>`,1,'board')}
+
+/* ---------- Leaderboard ---------- */
 const HOW=`<h2>How to play</h2><p><b>Part 1:</b> Answer each room’s question to earn its key. Each key opens the next key box; the fourth room reveals the controller.</p><p><b>Part 2:</b> Correct answers move forward by your 1–4 spin. Wrong answers move backward by the same spin. Reach the exit to escape.</p>`;
 const lbGet=()=>{try{return JSON.parse(localStorage.getItem('mq_lb')||'[]')}catch(e){return[]}};
 function saveScore(k,tl){try{const l=lbGet();l.push({n:P.name,c:P.cls,s:k*100+Math.max(tl,0)});l.sort((a,b)=>b.s-a.s);localStorage.setItem('mq_lb',JSON.stringify(l.slice(0,10)))}catch(e){}}
-function leaderboard(){const l=lbGet();show(`<h2>🏆 Leaderboard</h2>${l.length?l.map((e,i)=>`<p class="lb"><span>${i+1}. ${e.n} · Class ${e.c}</span><b>${e.s}</b></p>`).join(''):'<p>No scores yet. Be the first!</p>'}<p><small>Score = 100 per key + seconds left</small></p><button class="btn ghost" onclick="goTitle()">Back</button>`)}
+function leaderboard(){const l=lbGet();show(`<h2>🏆 Leaderboard</h2>${l.length?l.map((e,i)=>`<p class="lb"><span>${i+1}. ${e.n} · Class ${e.c}</span><b>${e.s}</b></p>`).join(''):'<p>No scores yet. Be the first!</p>'}<p><small>Score = 100 per key + seconds left</small></p><button class="btn ghost" onclick="goTitle()">Back</button>`,0,'class')}
 
-function startEscape(){E={r:0,keys:0,tries:0,hint:1,tl:600,qs:R.map(r=>r[1][rnd(2)])};clearInterval(E.iv);E.iv=setInterval(()=>{E.tl--;tick();if(E.tl<=0)lose()},1000);room()}
+/* ---------- Part 1: four rooms ---------- */
+function startEscape(){E={r:0,keys:0,tries:0,hint:1,tl:600,earned:0,qs:R.map(r=>r[1][rnd(2)])};clearInterval(E.iv);E.iv=setInterval(()=>{E.tl--;tick();if(E.tl<=0)lose()},1000);room()}
 const tick=()=>{const t=$('#tm');if(t)t.textContent='⏳ '+Math.floor(Math.max(E.tl,0)/60)+':'+String(Math.max(E.tl,0)%60).padStart(2,'0')};
-function room(){E.tries=0;show(`<div class="hud"><span id="tm"></span><span>🗝️ ${E.keys}/4</span></div><h2>Room ${E.r+1}: ${R[E.r][0]}</h2><p class="q">${E.qs[E.r][0]}</p><p id="fb" class="fb"></p><input id="ans" type="number" inputmode="numeric" onkeydown="if(event.key==='Enter')submitE()"><div class="row"><button class="btn" onclick="submitE()">Unlock</button><button class="btn ghost" id="hb" onclick="hintE()">Hint (${E.hint}) −30s</button></div>`);tick();$('#ans').focus()}
+function room(){E.tries=0;E.earned=0;show(`<div class="hud"><span id="tm"></span><span>🗝️ ${E.keys}/4</span></div><h2>Room ${E.r+1}: ${R[E.r][0]}</h2><p class="q">${E.qs[E.r][0]}</p><p id="fb" class="fb"></p><input id="ans" type="number" inputmode="numeric" onkeydown="if(event.key==='Enter')submitE()"><div class="row"><button class="btn" onclick="submitE()">Unlock</button><button class="btn ghost" id="hb" onclick="hintE()">Hint (${E.hint}) −30s</button></div>`,0,'room'+(E.r+1));tick();$('#ans').focus()}
 const fb=(t,b)=>{const f=$('#fb');f.textContent=t;f.className='fb'+(b?' bad':'')};
 function hintE(){if(!E.hint)return;E.hint=0;E.tl-=30;$('#hb').disabled=true;fb('Hint: '+E.qs[E.r][2])}
-function submitE(){const i=$('#ans');if(i.value==='')return;const c=E.qs[E.r],v=+i.value;i.value='';
- if(v===c[1]){ok();if(E.tries===2)E.tl-=30;fb('🗝️ Key earned! '+c[2]);nextRoom()}
+function submitE(){const i=$('#ans');if(i.value===''||i.disabled)return;const c=E.qs[E.r],v=+i.value;i.value='';
+ if(v===c[1]){ok();E.earned=1;if(E.tries===2)E.tl-=30;fb('🗝️ Key earned! '+c[2]);nextRoom()}
  else{bad();E.tries++;if(E.tries===1)fb('Not quite. Try once more.',1);else if(E.tries===2)fb('Clue: '+c[2]+' Final recovery attempt (correct costs 30 s).',1);else{E.tl-=60;fb('The answer was '+c[1]+'. '+c[2]+' (−60 s)',1);nextRoom()}}}
-function nextRoom(){$('#ans').disabled=true;setTimeout(()=>{E.keys++;E.r++;E.r===4?transition():room()},2200)}
-function lose(){clearInterval(E.iv);saveScore(E.keys,0);show(`<h1>Time's up</h1><p class="q">The buzzing grows louder… You collected ${E.keys} of 4 keys.</p><button class="btn" onclick="startEscape()">Try again (new puzzles)</button><button class="btn ghost" onclick="goTitle()">Title</button>`)}
-function transition(){clearInterval(E.iv);saveScore(E.keys,E.tl);part1Cleared=true;show(`<h1>Part 1 Cleared!</h1><p class="q">You found the controller and stopped the shrill buzzing. The villagers are safe. Your next challenge is now unlocked.</p><div class="part-card"><h2>Part 2: The Maze</h2><p>Read the next story, then reach the exit by answering and spinning.</p><button class="btn" onclick="playStory('part2')">Start Part 2</button></div><button class="btn ghost" onclick="partBoard()">Choose a Part</button><button class="btn ghost" onclick="goTitle()">Main Menu</button>`,1)}
+function nextRoom(){$('#ans').disabled=true;setTimeout(()=>{if(E.earned)E.keys++;E.r++;E.r===4?transition():room()},2200)}
+function lose(){clearInterval(E.iv);saveScore(E.keys,0);show(`<h1>Time's up</h1><p class="q">The buzzing grows louder… You collected ${E.keys} of 4 keys.</p><div class="row"><button class="btn" onclick="startEscape()">Try again (new puzzles)</button><button class="btn ghost" onclick="goTitle()">Main Menu</button></div>`,1,'house')}
+function transition(){clearInterval(E.iv);saveScore(E.keys,E.tl);part1Cleared=true;show(`<h1>Part 1 Cleared!</h1><p class="q">You found the controller and stopped the shrill buzzing. The villagers are safe. Your next challenge is now unlocked.</p><button class="btn" onclick="playStory('part2')">Start Part 2</button><div class="row"><button class="btn ghost" onclick="partBoard()">Choose a Part</button><button class="btn ghost" onclick="goTitle()">Main Menu</button></div>`,1,'cleared')}
 
+/* ---------- Part 2: maze ---------- */
 function startBoard(){B={p:0,deck:shuffle([...Array(14).keys()]),card:null};board()}
 function board(msg=''){const cells=[...Array(15).keys()].map(i=>`<div class="cell${i===14?' fin':''}">${i===0?'START':i===14?'EXIT':i}<br>${B.p===i?'<span class="tok">🟠</span>':''}</div>`).join('');
- show(`<h2>${P.name}'s Maze</h2><div class="track">${cells}</div><p class="fb">${msg}</p><div id="act"><button class="btn" onclick="spin1()">Draw a question</button></div>`)}
+ show(`<h2>${P.name}'s Maze</h2><div class="track">${cells}</div><p class="fb">${msg}</p><div id="act"><button class="btn" onclick="spin1()">Draw a question</button></div>`,0,'maze')}
 function spin1(){const a=$('#act');a.innerHTML='<div id="sp">?</div>';let n=0;const iv=setInterval(()=>{$('#sp').textContent=1+rnd(14);if(++n>12){clearInterval(iv);const i=B.deck.pop();if(!B.deck.length)B.deck=shuffle([...Array(14).keys()]);B.card=i;ask()}},80)}
 function ask(){const c=C[B.card];$('#act').innerHTML=`<div class="card"><small>Card ${B.card+1} · ${c[0]} · ${c[1]}</small><p class="q">${c[2]}</p><input id="ans" type="number" inputmode="numeric" onkeydown="if(event.key==='Enter')answerB()"><button class="btn" onclick="answerB()">Answer</button></div>`;$('#ans').focus()}
 function answerB(){const i=$('#ans');if(i.value==='')return;const c=C[B.card];B.correct=(+i.value===c[3]);if(B.correct)ok();else bad();$('#act').innerHTML=`<p class="fb${B.correct?'':' bad'}">${B.correct?'✔ Correct!':'✘ Incorrect. The answer was '+c[3]+'.'} ${c[4]}</p><button class="btn" onclick="spin2()">🎡 Spin to move</button>`}
 function spin2(){$('#act').innerHTML='<div id="sp">?</div>';let n=0;const iv=setInterval(()=>{$('#sp').textContent=1+rnd(4);if(++n>10){clearInterval(iv);const m=+$('#sp').textContent;B.p=Math.max(0,Math.min(14,B.p+(B.correct?m:-m)));if(B.p>=14)return finish();board(`${B.correct?'Correct: moved forward':'Wrong: moved backward'} ${m} ${m===1?'space':'spaces'}.`)}},80)}
-function finish(){ok();show(`<h1>You escaped, ${P.name}!</h1><p class="q">You reached the maze exit, silenced the buzzing, and helped the village.<br><br>Concepts you practised: multiplication, division, percentages, fractions, algebra, area and powers.</p><button class="btn" onclick="playStory('part1')">Play again</button><button class="btn ghost" onclick="goTitle()">Title</button>`)}
+function finish(){ok();show(`<h1>You escaped, ${P.name}!</h1><p class="q">You reached the maze exit, silenced the buzzing, and helped the village.<br><br>Concepts you practised: multiplication, division, percentages, fractions, algebra, area and powers.</p><div class="row"><button class="btn" onclick="part1Cleared=false;partBoard()">Play Again</button><button class="btn ghost" onclick="goTitle()">Main Menu</button></div>`,1,'escape')}
